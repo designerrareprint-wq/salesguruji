@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SalesGuru AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0f1a; --surface: #161928; --card: #1e2235; --border: #2a2f4a;
+  --accent: #f5a623; --accent2: #4f8ef7; --success: #3ecf8e; --danger: #f55a5a;
+  --text: #f0f2ff; --muted: #8890b0; --radius: 14px;
+  --font: 'Sora', sans-serif; --body: 'DM Sans', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { background: var(--bg); color: var(--text); font-family: var(--body); min-height: 100vh; overflow-x: hidden; }
+h1,h2,h3 { font-family: var(--font); }
+
+/* SCREENS - only one visible at a time via JS */
+.screen { display: none; min-height: 100vh; flex-direction: column; }
+
+/* ONBOARDING */
+#screen-onboard {
+  background: linear-gradient(160deg, #0d0f1a 0%, #1a1035 100%);
+  align-items: center; justify-content: center; padding: 2rem 1.5rem; text-align: center;
+}
+.logo-badge { font-size: 3.5rem; margin-bottom: 1rem; }
+.onboard-title { font-size: 2rem; font-weight: 700; color: var(--accent); margin-bottom: .5rem; }
+.onboard-sub { color: var(--muted); font-size: .95rem; line-height: 1.6; margin-bottom: 2rem; }
+.form-group { width: 100%; max-width: 380px; margin-bottom: 1rem; }
+.form-group label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: .4rem; text-align: left; letter-spacing: .05em; text-transform: uppercase; }
+.form-group input, .form-group select {
+  width: 100%; padding: .85rem 1rem; background: var(--card);
+  border: 1.5px solid var(--border); border-radius: 10px; color: var(--text);
+  font-family: var(--body); font-size: .95rem; outline: none;
+}
+.form-group select option { background: var(--card); color: var(--text); }
+.btn-start {
+  width: 100%; max-width: 380px; padding: 1rem; background: var(--accent);
+  color: #0d0f1a; font-family: var(--font); font-weight: 700; font-size: 1rem;
+  border: none; border-radius: 10px; cursor: pointer; margin-top: .5rem;
+}
+
+/* HOME */
+#screen-home { padding: 0; }
+.top-bar {
+  background: var(--surface); padding: 1.2rem 1.3rem .9rem;
+  border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.top-bar .greeting { font-size: .8rem; color: var(--muted); }
+.top-bar .username { font-family: var(--font); font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+.xp-pill {
+  background: var(--card); border: 1.5px solid var(--border); border-radius: 20px;
+  padding: .35rem .8rem; font-size: .8rem; font-weight: 600; display: flex; align-items: center; gap: 6px;
+}
+.xp-pill .xpval { color: var(--accent); font-family: var(--font); }
+.scroll-body { flex: 1; overflow-y: auto; padding: 1.2rem; }
+.section-title { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .8rem; margin-top: 1.4rem; }
+.section-title:first-child { margin-top: 0; }
+.progress-banner {
+  background: var(--card); border: 1.5px solid var(--border); border-radius: var(--radius);
+  padding: 1rem 1.2rem; margin-bottom: 1rem;
+}
+.pb-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: .6rem; }
+.pb-label { font-family: var(--font); font-size: .9rem; font-weight: 600; }
+.pb-pct { font-size: .8rem; color: var(--accent); font-weight: 600; }
+.prog-bar { background: var(--border); border-radius: 20px; height: 7px; overflow: hidden; }
+.prog-fill { background: linear-gradient(90deg, var(--accent2), var(--accent)); height: 100%; border-radius: 20px; transition: width .5s; }
+.streak-bar { display: flex; gap: .4rem; margin-bottom: .6rem; }
+.streak-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); }
+.streak-dot.on { background: var(--accent); }
+.topics-grid { display: flex; flex-direction: column; gap: .7rem; }
+.topic-card {
+  background: var(--card); border: 1.5px solid var(--border); border-radius: var(--radius);
+  padding: 1rem 1.1rem; display: flex; align-items: center; gap: .9rem; cursor: pointer;
+}
+.topic-card.completed { border-color: var(--success); }
+.topic-card.locked { opacity: .4; pointer-events: none; }
+.topic-card.active-topic { border-color: var(--accent); }
+.topic-icon { font-size: 1.6rem; min-width: 2.2rem; text-align: center; }
+.topic-info { flex: 1; }
+.topic-name { font-family: var(--font); font-size: .9rem; font-weight: 600; }
+.topic-sub { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+.topic-badge { font-size: .7rem; padding: .25rem .6rem; border-radius: 20px; font-weight: 600; white-space: nowrap; }
+.badge-done { background: rgba(62,207,142,.15); color: var(--success); }
+.badge-go { background: rgba(245,166,35,.15); color: var(--accent); }
+.badge-lock { background: rgba(136,144,176,.1); color: var(--muted); }
+.level-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: .5rem; }
+.level-btn {
+  background: var(--card); border: 1.5px solid var(--border); border-radius: 10px;
+  padding: .7rem .3rem; text-align: center; cursor: pointer;
+  font-family: var(--font); font-size: .75rem; font-weight: 600;
+}
+.level-btn .lv-num { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+.level-btn.locked-lv { opacity: .4; pointer-events: none; }
+.level-btn.active-lv { border-color: var(--accent2); }
+
+/* LEARN */
+#screen-learn { padding: 0; }
+.learn-header {
+  background: var(--surface); padding: 1rem 1.2rem;
+  border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: .8rem;
+}
+.back-btn {
+  background: var(--card); border: 1.5px solid var(--border); border-radius: 8px;
+  width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 1rem; flex-shrink: 0;
+}
+.learn-title-text { font-family: var(--font); font-size: 1rem; font-weight: 700; }
+.learn-body { flex: 1; overflow-y: auto; padding: 1.3rem; }
+.learn-icon { font-size: 3rem; text-align: center; margin-bottom: 1rem; }
+.learn-heading { font-family: var(--font); font-size: 1.4rem; font-weight: 700; margin-bottom: .5rem; }
+.learn-intro { color: var(--muted); font-size: .9rem; line-height: 1.65; margin-bottom: 1.4rem; }
+.tip-card {
+  background: var(--card); border-left: 3px solid var(--accent); border-radius: 10px;
+  padding: 1rem 1.1rem; margin-bottom: .8rem;
+}
+.tip-label { font-size: .7rem; text-transform: uppercase; color: var(--accent); font-weight: 700; margin-bottom: .3rem; letter-spacing: .06em; }
+.tip-card p { font-size: .88rem; line-height: 1.6; }
+.author-quote {
+  background: rgba(79,142,247,.08); border: 1.5px solid rgba(79,142,247,.2);
+  border-radius: 10px; padding: 1rem 1.1rem; margin-bottom: 1.4rem;
+}
+.author-quote p { font-size: .88rem; line-height: 1.6; font-style: italic; margin-bottom: .4rem; }
+.author-name { font-size: .75rem; color: var(--accent2); font-weight: 600; }
+.practice-cta {
+  background: var(--accent); color: #0d0f1a; font-family: var(--font); font-weight: 700;
+  font-size: 1rem; border: none; border-radius: 12px; padding: 1rem; width: 100%;
+  cursor: pointer; margin-top: 1rem; display: block;
+}
+
+/* PRACTICE */
+#screen-practice { padding: 0; }
+.practice-body { flex: 1; overflow-y: auto; padding: 1.3rem; }
+.scenario-box {
+  background: var(--card); border: 1.5px solid var(--border); border-radius: var(--radius);
+  padding: 1.2rem; margin-bottom: 1.2rem;
+}
+.scenario-label { font-size: .7rem; text-transform: uppercase; color: var(--accent2); font-weight: 700; letter-spacing: .08em; margin-bottom: .5rem; }
+.scenario-text { font-size: .92rem; line-height: 1.6; font-weight: 500; }
+.options-list { display: flex; flex-direction: column; gap: .7rem; margin-bottom: 1.2rem; }
+.option-btn {
+  background: var(--card); border: 1.5px solid var(--border); border-radius: 12px;
+  padding: .95rem 1.1rem; text-align: left; cursor: pointer;
+  font-family: var(--body); font-size: .88rem; line-height: 1.5; color: var(--text);
+  display: flex; align-items: flex-start; gap: .7rem; width: 100%;
+}
+.opt-letter {
+  background: var(--border); border-radius: 6px; min-width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center; font-weight: 700;
+  font-size: .75rem; font-family: var(--font); flex-shrink: 0; margin-top: 1px;
+}
+.option-btn.correct { border-color: var(--success); background: rgba(62,207,142,.07); }
+.option-btn.correct .opt-letter { background: var(--success); color: #0d0f1a; }
+.option-btn.wrong { border-color: var(--danger); background: rgba(245,90,90,.07); }
+.option-btn.wrong .opt-letter { background: var(--danger); color: #fff; }
+.feedback-box { border-radius: 12px; padding: 1rem 1.1rem; margin-bottom: 1rem; }
+.fb-wrong { background: rgba(245,90,90,.1); border: 1.5px solid rgba(245,90,90,.3); }
+.fb-correct { background: rgba(62,207,142,.1); border: 1.5px solid rgba(62,207,142,.3); }
+.fb-title { font-family: var(--font); font-size: .85rem; font-weight: 700; margin-bottom: .4rem; }
+.fb-wrong .fb-title { color: var(--danger); }
+.fb-correct .fb-title { color: var(--success); }
+.fb-text { font-size: .83rem; line-height: 1.6; color: var(--muted); }
+.action-btn {
+  border-radius: 12px; padding: .95rem; width: 100%; cursor: pointer;
+  font-family: var(--font); font-weight: 700; font-size: .95rem; border: none; margin-top: .5rem; display: block;
+}
+.btn-next { background: var(--success); color: #0d0f1a; }
+.btn-retry { background: transparent; color: var(--accent); border: 1.5px solid var(--accent) !important; }
+
+/* ARENA */
+#screen-arena { padding: 0; }
+.arena-header {
+  background: var(--surface); padding: 1rem 1.2rem;
+  border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;
+}
+.arena-chat { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: .8rem; }
+.msg { max-width: 85%; }
+.msg.ai { align-self: flex-start; }
+.msg.user { align-self: flex-end; }
+.msg-bubble { padding: .85rem 1rem; border-radius: 16px; font-size: .88rem; line-height: 1.6; }
+.msg.ai .msg-bubble { background: var(--card); border: 1.5px solid var(--border); border-bottom-left-radius: 4px; }
+.msg.user .msg-bubble { background: var(--accent2); color: #fff; border-bottom-right-radius: 4px; }
+.msg-label { font-size: .68rem; color: var(--muted); margin-bottom: 3px; font-weight: 600; }
+.msg.user .msg-label { text-align: right; }
+.arena-options { padding: .8rem 1rem 1.2rem; display: flex; flex-direction: column; gap: .5rem; background: var(--surface); border-top: 1px solid var(--border); }
+.arena-opt {
+  background: var(--card); border: 1.5px solid var(--border); border-radius: 10px;
+  padding: .75rem .9rem; font-size: .85rem; cursor: pointer; text-align: left;
+  color: var(--text); font-family: var(--body);
+}
+.win-banner {
+  background: linear-gradient(135deg, #1a3a1a, #0d1f0d); border: 2px solid var(--success);
+  border-radius: var(--radius); padding: 1.5rem; text-align: center; margin: 1rem;
+}
+.win-icon { font-size: 3rem; margin-bottom: .5rem; }
+</style>
+</head>
+<body>
+
+<!-- ===== ONBOARDING ===== -->
+<div id="screen-onboard" class="screen">
+  <div class="logo-badge">🏆</div>
+  <h1 class="onboard-title">SalesGuru AI</h1>
+  <p class="onboard-sub">Master the world's best sales techniques.<br>Learn. Practice. Close deals.</p>
+  <div class="form-group">
+    <label>Your Name</label>
+    <input id="inp-name" type="text" placeholder="e.g. Rahul Sharma">
+  </div>
+  <div class="form-group">
+    <label>Your Business Type</label>
+    <select id="inp-biz">
+      <option value="">-- Select your business --</option>
+      <option value="printing">Printing Company</option>
+      <option value="medical_store">Medical / Pharmacy Store</option>
+      <option value="clinic">Clinic / Healthcare</option>
+      <option value="mobile_shop">Mobile / Electronics Shop</option>
+      <option value="clothing">Clothing / Fashion Store</option>
+      <option value="beauty">Beauty Parlour / Salon</option>
+      <option value="real_estate">Real Estate</option>
+      <option value="insurance">Insurance</option>
+      <option value="software">Software / IT Services</option>
+      <option value="restaurant">Restaurant / Food Business</option>
+      <option value="general">General Sales</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label>Your Product / Service (optional)</label>
+    <input id="inp-product" type="text" placeholder="e.g. Business Cards, Flex Printing">
+  </div>
+  <button class="btn-start" id="btn-start">Start Training 🚀</button>
+</div>
+
+<!-- ===== HOME ===== -->
+<div id="screen-home" class="screen">
+  <div class="top-bar">
+    <div>
+      <div class="greeting" id="greeting-text">Good morning,</div>
+      <div class="username" id="user-display">Champion</div>
+    </div>
+    <div class="xp-pill">⚡ XP <span class="xpval" id="xp-count">0</span></div>
+  </div>
+  <div class="scroll-body">
+    <div class="progress-banner">
+      <div class="pb-top"><span class="pb-label">Overall Progress</span><span class="pb-pct" id="prog-pct">0%</span></div>
+      <div class="streak-bar" id="streak-bar"></div>
+      <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+    </div>
+    <div class="section-title">📚 Sales Topics</div>
+    <div class="topics-grid" id="topics-grid"></div>
+    <div class="section-title">⚔️ Level Arena – Practice With AI Customer</div>
+    <div class="level-grid" id="level-grid"></div>
+    <div style="height:2rem"></div>
+  </div>
+</div>
+
+<!-- ===== LEARN ===== -->
+<div id="screen-learn" class="screen">
+  <div class="learn-header">
+    <div class="back-btn" id="back-from-learn">←</div>
+    <div class="learn-title-text" id="learn-title">Topic</div>
+  </div>
+  <div class="learn-body" id="learn-body"></div>
+</div>
+
+<!-- ===== PRACTICE ===== -->
+<div id="screen-practice" class="screen">
+  <div class="learn-header">
+    <div class="back-btn" id="back-from-practice">←</div>
+    <div class="learn-title-text" id="practice-title">Practice</div>
+  </div>
+  <div class="practice-body" id="practice-body"></div>
+</div>
+
+<!-- ===== ARENA ===== -->
+<div id="screen-arena" class="screen">
+  <div class="arena-header">
+    <div class="back-btn" id="back-from-arena">←</div>
+    <div style="font-family:var(--font);font-size:1rem;font-weight:700" id="arena-title">Arena</div>
+    <div class="xp-pill" style="font-size:.75rem" id="arena-moves">Move 0/6</div>
+  </div>
+  <div class="arena-chat" id="arena-chat"></div>
+  <div class="arena-options" id="arena-options"></div>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+var PERSONAS = {
+  printing:      { customer:"business owner",    product:"printing services",       pain:"high printing costs",          desire:"reliable affordable printing" },
+  medical_store: { customer:"medical store owner",product:"pharmaceutical products", pain:"stockouts and poor margins",   desire:"reliable supply chain" },
+  clinic:        { customer:"patient",            product:"healthcare services",      pain:"health concerns",              desire:"trusted treatment" },
+  mobile_shop:   { customer:"retail customer",    product:"mobiles & electronics",    pain:"too many options",             desire:"best value for money" },
+  clothing:      { customer:"shopper",            product:"fashion & clothing",       pain:"finding right fit and style",  desire:"trendy affordable clothes" },
+  beauty:        { customer:"lady customer",      product:"beauty & salon services",  pain:"finding trusted beautician",   desire:"look beautiful and confident" },
+  real_estate:   { customer:"home buyer",         product:"property / plots",         pain:"budget and location concerns", desire:"safe investment and dream home" },
+  insurance:     { customer:"family person",      product:"insurance plans",          pain:"fear of unexpected expenses",  desire:"financial security" },
+  software:      { customer:"business client",    product:"software solutions",       pain:"manual work and productivity", desire:"automation and growth" },
+  restaurant:    { customer:"diner",              product:"food & dining",            pain:"finding quality food",         desire:"great taste and experience" },
+  general:       { customer:"prospect customer",  product:"your product",             pain:"current challenges",           desire:"a better solution" }
+};
+
+var TOPICS = [
+  {
+    id:"greeting", icon:"👋", name:"Greeting by Name", sub:"First impression mastery",
+    intro:"The first 7 seconds define the entire conversation. Greeting a customer by name builds instant trust and makes them feel special. Dale Carnegie in 'How to Win Friends' says a person's name is the sweetest sound to them.",
+    tips:[
+      {label:"Golden Rule", text:"Always use the customer's name + appropriate title (Sir/Ma'am) + time-based greeting (Good Morning/Afternoon/Evening). This three-step formula never fails."},
+      {label:"Body Language", text:"Smile before you speak. Research shows smiling is heard over phone too. In person, maintain eye contact and lean slightly forward to show engagement."},
+      {label:"WhatsApp Tip", text:"Start WhatsApp messages with: 'Hi [Name] Sir/Ma'am 🙏 Good [morning/afternoon/evening]! Hope you are doing well.' Always personalize, never copy-paste generic greetings."}
+    ],
+    quote:{text:"You can make more friends in two months by becoming interested in other people than you can in two years trying to get people interested in you.",author:"Dale Carnegie – How to Win Friends and Influence People"},
+    scenarios:[
+      {
+        text:"SCENARIO: You are about to call a customer whose name is PRASHANT. It is 10:00 AM Monday morning. Select the best greeting:",
+        options:[
+          {text:"Hey Whatsapp buddy! How do you do bhai? 😂", correct:false, feedback:"Too casual and unprofessional. Using 'WhatsApp buddy' has no place in sales. Always greet with name + title + time greeting."},
+          {text:"Hi Sir, Good Morning! How are you today?", correct:false, feedback:"Good morning is correct, but you MISSED using his name 'Prashant'. Always use the customer's name – it creates instant personal connection."},
+          {text:"Hi Prashant Sir, Good Morning! Hope you are doing great today 😊", correct:true, feedback:""},
+          {text:"Kaise ho Prashant bhai? Sab theek?", correct:false, feedback:"Very informal tone – no proper greeting. In professional sales, always use formal greeting with time-based salutation."}
+        ]
+      },
+      {
+        text:"SCENARIO: Customer SUNITA DEVI has walked into your shop at 3:30 PM. It is your first meeting. How do you greet her?",
+        options:[
+          {text:"Hello! What are you looking for today?", correct:false, feedback:"Jumping straight to business without greeting feels transactional. Use her name and time-based greeting first."},
+          {text:"Good Afternoon Sunita Ma'am! Welcome! So glad you're here today 😊", correct:true, feedback:""},
+          {text:"Namaste! Aao baitho.", correct:false, feedback:"Her name is not used, and 'Aao baitho' is too casual. Use name + formal time greeting for first meetings."},
+          {text:"Hey! Nice to meet you!", correct:false, feedback:"Friendly but missing her name and time-based greeting. Lacks professional warmth needed in sales."}
+        ]
+      }
+    ]
+  },
+  {
+    id:"intro", icon:"🤝", name:"Self Introduction", sub:"Create a powerful first impression",
+    intro:"Your self introduction is your personal brand pitch. Brian Tracy says you must clearly communicate WHO you are, WHAT you do, and HOW you HELP within 30 seconds. Make it memorable, confident, and customer-focused.",
+    tips:[
+      {label:"The Formula", text:"Name + Company + What you solve for customers. Example: 'I am Rahul from PrintPro – we help businesses save 30% on printing costs without compromising quality.'"},
+      {label:"Confidence", text:"Speak at medium pace. Don't rush. A slow, confident introduction is 10x more impressive than a nervous fast one. Practice your intro 20 times until it feels natural."},
+      {label:"WhatsApp Intro", text:"First WhatsApp message: Your full name, company name, how you got their number, and ONE value statement. Keep it under 3 lines."}
+    ],
+    quote:{text:"Every sale has five basic obstacles: no need, no money, no hurry, no desire, no trust. Your introduction must begin breaking these walls.",author:"Zig Ziglar – Secrets of Closing the Sale"},
+    scenarios:[
+      {
+        text:"SCENARIO: You are calling VIKRAM MEHTA for the first time. He doesn't know you. How do you introduce yourself?",
+        options:[
+          {text:"Hi Vikram Sir, I am calling from a company. We sell many things. Can I have 2 minutes?", correct:false, feedback:"Vague and weak. 'Selling many things' gives no value. Be specific about your company name and what VALUE you bring to THEM."},
+          {text:"Hi Vikram Sir, I am Rahul from PrintPro Solutions. We help businesses like yours reduce printing costs by 30%. Do you have 2 minutes?", correct:true, feedback:""},
+          {text:"Hello, my name is Rahul Sharma and I work as a sales executive in a printing company established in 2010 with 50 employees...", correct:false, feedback:"Too long and self-focused! Customers don't care about your company history in the first 20 seconds. Lead with VALUE to them."},
+          {text:"Hi Vikram bhai! Maine suna aapka printing kaam hai toh socha baat karte hain!", correct:false, feedback:"Informal and lacks structure. No company introduction, no value proposition. First introductions need professionalism."}
+        ]
+      }
+    ]
+  },
+  {
+    id:"common_ground", icon:"🌐", name:"Finding Common Ground", sub:"Build instant rapport",
+    intro:"People buy from people they like. Finding common ground is about discovering shared connections – city, events, interests – that create emotional bonding before business talk. Jeffrey Gitomer says 'People want to do business with their friends.'",
+    tips:[
+      {label:"City Connection", text:"Research the customer's city before calling. Know 1-2 things – a recent event, famous place, local food, weather. Mentioning their city makes them feel you know their world."},
+      {label:"Social Clues", text:"Check LinkedIn/WhatsApp DP before the call. Did they recently travel? Post about cricket? These are powerful rapport builders if used naturally."},
+      {label:"Sports & Events", text:"Cricket, T20, IPL, local festivals – powerful common ground topics in India. 'How was the atmosphere in Ahmedabad during the World Cup?' – instant connection!"}
+    ],
+    quote:{text:"The fastest way to connect with a prospect is to find what you both care about, then talk about that before you talk about business.",author:"Jeffrey Gitomer – The Sales Bible"},
+    scenarios:[
+      {
+        text:"SCENARIO: Your customer RAHUL is calling from AHMEDABAD. The T20 World Cup was hosted there recently. How do you build common ground?",
+        options:[
+          {text:"So Rahul Sir, let's talk about our products. We have great offers this month.", correct:false, feedback:"You skipped rapport building entirely. Jumping to products without common ground makes the call feel cold."},
+          {text:"Rahul Sir, Ahmedabad mein bahut heat hoti hai na? Aapko kaisi lagti hai garmi?", correct:false, feedback:"Weather is a weak opener. The T20 World Cup at Narendra Modi Stadium is a far more exciting and memorable common ground."},
+          {text:"Rahul Sir, you're from Ahmedabad – it must have been incredible when the T20 World Cup was hosted there! How was the energy in the city?", correct:true, feedback:""},
+          {text:"Rahul Sir, Ahmedabad is famous for Sabarmati Ashram. Have you visited it?", correct:false, feedback:"A tourist attraction is weak compared to a recent emotionally charged event like the World Cup. Always prefer RECENT and EXCITING common ground."}
+        ]
+      }
+    ]
+  },
+  {
+    id:"open_questions", icon:"💬", name:"Open-Ended Questions", sub:"Get customers talking",
+    intro:"Open-ended questions cannot be answered with Yes or No. They force the customer to think, explain, and share. YOU learn more, the customer feels heard, and trust builds. The rule: Who, What, When, Where, Why, How.",
+    tips:[
+      {label:"5W + 1H Formula", text:"'What kind of results are you looking for?' 'How do you currently handle this?' 'What would the ideal solution look like for you?' These unlock real conversations."},
+      {label:"Avoid Closed Questions", text:"Bad: 'Do you need printing?' → Yes/No dead end. Good: 'What kind of printing work comes up most frequently in your business?' → Opens a story."},
+      {label:"WhatsApp Open Questions", text:"'What are your main requirements for [product]?' or 'What is the biggest challenge you face with your current supplier?' – These get 3x more replies."}
+    ],
+    quote:{text:"The quality of your questions determines the quality of your relationships and your sales.",author:"Tony Robbins – Unlimited Power"},
+    scenarios:[
+      {
+        text:"SCENARIO: Customer SURESH PATIL says he is 'thinking about' using your service. Which question do you ask to understand more?",
+        options:[
+          {text:"Okay Sir, so will you buy or not?", correct:false, feedback:"This is a closed pressure question. It forces a Yes/No decision before the customer is ready and feels pushy."},
+          {text:"What specific outcomes are you hoping to achieve? Tell me more about your situation.", correct:true, feedback:""},
+          {text:"Do you have budget for this?", correct:false, feedback:"Jumping to budget too early is a red flag. First understand their need. Also this is a closed question."},
+          {text:"Have you seen our catalogue? It has everything.", correct:false, feedback:"Pushing a catalogue before understanding their need is a classic mistake. The customer wants solutions to their specific problem."}
+        ]
+      }
+    ]
+  },
+  {
+    id:"spin_situation", icon:"🔍", name:"SPIN – Situation Questions", sub:"Understand before you sell",
+    intro:"SPIN Selling by Neil Rackham is used by top B2B salespeople worldwide. S = Situation Questions. Before you offer any solution, understand the customer's current situation. Ask about their current tools, processes, and how they do things today.",
+    tips:[
+      {label:"SPIN S = Situation", text:"Ask about current state: 'What do you currently use for...? How many staff handle this? Which supplier do you work with currently?' Fact-finding, not selling."},
+      {label:"Don't Over-Question", text:"Maximum 2-3 situation questions. Too many feels like an interrogation. Get key facts then move to Problem questions."},
+      {label:"Listen Actively", text:"While they answer, take mental notes. Their answers will reveal pain points for your SPIN Problem questions next."}
+    ],
+    quote:{text:"Successful salespeople ask more questions in the early stages of the call and fewer product-related questions.",author:"Neil Rackham – SPIN Selling"},
+    scenarios:[
+      {
+        text:"SCENARIO: You are speaking to a business owner. Your goal is to ask SPIN Situation questions about their current supplier. Select the BEST opening situation question:",
+        options:[
+          {text:"What suppliers or solutions are you currently using for this in your business?", correct:true, feedback:""},
+          {text:"Would you like to buy our product? We have great offers this month!", correct:false, feedback:"This is a direct sales pitch, NOT a Situation question. SPIN starts with understanding, not selling."},
+          {text:"Don't you think your current solution has problems?", correct:false, feedback:"This is a leading Problem question and you haven't gathered situation data yet. Follow SPIN sequence: Situation first."},
+          {text:"How many staff members do you have and what is your monthly turnover?", correct:false, feedback:"Too intrusive as an opener. Financial/HR questions feel like an interrogation. Start with the product/service situation."}
+        ]
+      }
+    ]
+  },
+  {
+    id:"spin_problem", icon:"⚠️", name:"SPIN – Problem Questions", sub:"Uncover the real pain",
+    intro:"P = Problem Questions in SPIN Selling. Once you understand the customer's situation, dig into their difficulties and dissatisfactions. Great salespeople help customers discover problems they may not have fully acknowledged.",
+    tips:[
+      {label:"SPIN P = Problem", text:"Ask about pain: 'Are you ever concerned about...? Do you find it difficult when...? What challenges do you face with your current...?' Let them name the pain."},
+      {label:"Pain = Motivation", text:"A customer who acknowledges a problem is 5x more likely to buy a solution. Ask questions that surface the pain."},
+      {label:"Never Assume", text:"Don't say 'You must be having this problem...' Ask questions and let them tell you. Their own words are more powerful than yours."}
+    ],
+    quote:{text:"It's not your product that sells – it's the problem your product solves that sells.",author:"Neil Rackham – SPIN Selling"},
+    scenarios:[
+      {
+        text:"SCENARIO: Your customer uses a current supplier. You want to ask a SPIN Problem question to uncover dissatisfaction. Which question is best?",
+        options:[
+          {text:"Have you ever faced delays or quality issues with your current supplier that affected your business?", correct:true, feedback:""},
+          {text:"Your current supplier must be terrible right? Ours is much better.", correct:false, feedback:"Never attack the competitor. Problem questions must let the CUSTOMER discover and state the problem themselves."},
+          {text:"Do you want to buy our product?", correct:false, feedback:"Still a sales push. You haven't established any problem yet. The customer won't feel the need to switch."},
+          {text:"Everything is going fine with your supplier, right?", correct:false, feedback:"This closed positive question reinforces satisfaction. A Problem question should explore potential dissatisfactions."}
+        ]
+      }
+    ]
+  },
+  {
+    id:"persuasion", icon:"🧠", name:"Psychology of Persuasion", sub:"Cialdini's 6 principles",
+    intro:"Robert Cialdini's book 'Influence: The Psychology of Persuasion' reveals 6 powerful principles: Reciprocity, Commitment, Social Proof, Authority, Liking, and Scarcity. Master these and your close rate will skyrocket.",
+    tips:[
+      {label:"Scarcity", text:"'We only have 3 units left at this price.' 'This offer ends on Friday.' – Scarcity triggers urgency. Use honestly – never fake it, or you lose trust permanently."},
+      {label:"Social Proof", text:"'100+ businesses in your area use our service.' Share customer names (with permission), Google reviews, WhatsApp testimonials. Real proof destroys doubt."},
+      {label:"Reciprocity", text:"Give something valuable first – a free tip, a sample, a resource. People feel naturally obligated to return value. Best salespeople give before they take."}
+    ],
+    quote:{text:"The best salespeople know that their expertise and confidence transfer to the buyer. Uncertainty is the enemy of the sale.",author:"Robert Cialdini – Influence: The Psychology of Persuasion"},
+    scenarios:[
+      {
+        text:"SCENARIO: Customer MEENA says 'Let me think about it.' You want to use Scarcity ethically to create urgency. What do you say?",
+        options:[
+          {text:"Madam please decide fast, this is last piece only, after this no stock!", correct:false, feedback:"If this is not true, it's unethical. Customers sense fake scarcity and lose trust permanently. Only use scarcity when it's real."},
+          {text:"Meena Ma'am, of course take your time. Just so you know, our current pricing is valid only till end of this month as costs are going up. Shall I hold a slot for you?", correct:true, feedback:""},
+          {text:"Okay Ma'am, think about it, call me whenever.", correct:false, feedback:"Passive response with no urgency trigger. 'Think about it' customers rarely call back. Create a reason to decide without being pushy."},
+          {text:"Ma'am everyone is buying this. 50 people bought yesterday.", correct:false, feedback:"Unverifiable claims sound fake. Use specific honest proof: 'Last month, 12 businesses in your area switched to us.'"}
+        ]
+      }
+    ]
+  },
+  {
+    id:"negotiation", icon:"⚖️", name:"Negotiation Skills", sub:"Win-win closing",
+    intro:"Chris Voss in 'Never Split the Difference' revolutionized negotiation. Never give a discount without getting something in return. The goal is a deal where BOTH sides feel they won. Price is rarely the real issue – value perception is.",
+    tips:[
+      {label:"Never Split the Difference", text:"When customer says 'Give me discount', don't immediately reduce. Ask: 'What would make this a perfect deal for you?' – Let them reveal what they REALLY want."},
+      {label:"Anchor High", text:"Always quote your full price first with confidence. Discounting before being asked is the #1 mistake. If they don't ask, you just gave away margin for free."},
+      {label:"Add Value, Don't Cut Price", text:"'I can't lower the price, but I can add free delivery + 3 months priority support.' Adding value protects your price and makes customer feel they won."}
+    ],
+    quote:{text:"The most dangerous negotiating mistake: making the first concession without getting anything in return.",author:"Chris Voss – Never Split the Difference"},
+    scenarios:[
+      {
+        text:"SCENARIO: Customer ANIL wants to buy but says 'Your price is too high. Give me 20% off.' What is the best response?",
+        options:[
+          {text:"Okay Sir, 20% off de deta hoon, deal pakka karo.", correct:false, feedback:"Immediately accepting destroys credibility, sets a precedent for next time, and signals your original price was inflated. Never accept the first demand."},
+          {text:"Sir, price is fixed, no discount possible.", correct:false, feedback:"Rigid refusal closes the door. Acknowledge their concern and shift focus to value without just saying 'no'."},
+          {text:"Anil Sir, I understand you want the best value. If you can commit to a 3-month contract, I can include free delivery and priority support worth ₹5,000. Would that work?", correct:true, feedback:""},
+          {text:"Sir everyone gets same price, no special discount for anyone.", correct:false, feedback:"True but unhelpful. This sounds defensive. Acknowledge the concern and offer an alternative value proposition."}
+        ]
+      }
+    ]
+  },
+  {
+    id:"closing", icon:"🎯", name:"Closing Techniques", sub:"Ask for the sale with confidence",
+    intro:"Zig Ziglar said: 'Every sale has five basic closing attempts.' Top salespeople ask for the order 5 times – amateurs ask once, hear No, and leave. Learn the Assumptive Close, Summary Close, Urgency Close and the Silence Close.",
+    tips:[
+      {label:"Assumptive Close", text:"'So should I book this in your name for Tuesday delivery?' – You assume the sale is done and move to logistics. Very effective when used confidently after good rapport."},
+      {label:"Summary Close", text:"'So Priya Ma'am, we agreed on 500 business cards, your logo design, delivered by Friday, at ₹2,400 total. Shall I proceed?' – Summarize and ask for yes."},
+      {label:"The Silence Close", text:"After asking the closing question, STOP TALKING. The next person who speaks loses. This is the most powerful and most neglected closing technique."}
+    ],
+    quote:{text:"Ask for the order. Then be quiet. The silence is always more comfortable for the person who has nothing to fear.",author:"Zig Ziglar – Secrets of Closing the Sale"},
+    scenarios:[
+      {
+        text:"SCENARIO: Customer DEEPAK has listened to your full pitch and shown interest. He seems ready. What is the best closing statement?",
+        options:[
+          {text:"So Deepak Sir, let me know whenever you feel like ordering.", correct:false, feedback:"Passive closing = no close. Always ask for the order explicitly – don't leave it to the customer to initiate."},
+          {text:"So Deepak Sir, we discussed quality, price, and delivery. Shall I go ahead and book your order for this week?", correct:true, feedback:""},
+          {text:"Deepak Sir kya lagta hai? Lena hai kya?", correct:false, feedback:"Informal and lacks conviction. A closing question must have confidence and clarity. Summarize value, then ask for the order."},
+          {text:"Sir please think and confirm. I'll wait for your call.", correct:false, feedback:"You are handing back control to the customer and giving permission to delay. 'I'll wait for your call' is a recipe for ghosting."}
+        ]
+      }
+    ]
+  },
+  {
+    id:"followup", icon:"📲", name:"Follow-Up Techniques", sub:"Fortune is in the follow-up",
+    intro:"80% of sales happen between the 5th and 12th contact. Yet 48% of salespeople never follow up even once. The best follow-up adds value each time instead of just asking 'did you decide yet?'",
+    tips:[
+      {label:"Add Value Every Time", text:"Don't call just to 'follow up'. Every follow-up must carry a reason: a new testimonial, a limited offer, useful industry news, or a relevant case study."},
+      {label:"Follow-Up Schedule", text:"Day 1: Initial call → Day 3: WhatsApp value message → Day 7: Reminder call → Day 14: New info/offer → Day 30: Reconnect. Consistency beats intensity."},
+      {label:"WhatsApp Follow-Up", text:"'Hi [Name] Sir, just sharing a quick result one of our clients got this week [screenshot/story]. Thought it might be useful for your decision. Happy to answer any questions 😊'"}
+    ],
+    quote:{text:"The fortune is in the follow-up. Most salespeople quit at the 3rd no. Champions follow up until the customer buys or dies.",author:"Jim Rohn – The Art of Exceptional Living"},
+    scenarios:[
+      {
+        text:"SCENARIO: Customer POOJA said 'I'll think about it' 5 days ago. You want to follow up on WhatsApp. Which message do you send?",
+        options:[
+          {text:"Hi Pooja, did you decide? Waiting for your reply.", correct:false, feedback:"Pressure follow-up with no value. This gets ignored. Every follow-up must offer something new – a reason to re-engage."},
+          {text:"Hi Pooja Ma'am 🙏 Just sharing a result from our recent client – she saved ₹8,000 on her quarterly order. Thought this might help with your decision. Any questions I can clarify? 😊", correct:true, feedback:""},
+          {text:"Pooja ji last chance hai, please confirm karo.", correct:false, feedback:"Fake urgency and pressure permanently damages the relationship. Customers avoid your number after this."},
+          {text:"Hi! Following up on our conversation. Please let me know.", correct:false, feedback:"Better than pressure but still no value added. The customer needs a NEW reason to say yes. Add value in every follow-up."}
+        ]
+      }
+    ]
+  },
+  {
+    id:"whatsapp", icon:"💚", name:"WhatsApp Sales Techniques", sub:"Sell on the world's #1 app",
+    intro:"In India, 90%+ of business communication happens on WhatsApp. Yet most salespeople use it wrong – spamming catalogues. WhatsApp selling is about conversation, not broadcasting. Use it to build relationships and close smoothly.",
+    tips:[
+      {label:"Opening Message Formula", text:"Hi [Name] 🙏 I'm [Your Name] from [Company]. [Reference how you got their number]. We help [their type of business] with [specific benefit]. Open to a quick 2-min conversation? 😊"},
+      {label:"Status as a Sales Tool", text:"Post daily WhatsApp Status: customer testimonials, behind-the-scenes, tips for your target audience, product showcases. Status views = warm leads who are interested."},
+      {label:"Broadcast vs Personal", text:"Never just broadcast to everyone. Personalize: 'Hi Amit Sir, specifically thought of you for this…' Personal attention converts 10x better than bulk messages."}
+    ],
+    quote:{text:"The most important thing in communication is hearing what isn't said. On WhatsApp, response time and tone tell you everything about where the customer is emotionally.",author:"Peter Drucker – adapted for digital sales"},
+    scenarios:[
+      {
+        text:"SCENARIO: New lead – SAMEER KHAN, a clothing shop owner in Pune. You need to send your FIRST WhatsApp message. Choose the best one:",
+        options:[
+          {text:"[Sends 10-page PDF catalogue] 'Hi, please check our catalogue and tell me what you need.'", correct:false, feedback:"Sending a catalogue as a first message is a spam move. You haven't built any rapport or asked what they need. Most people delete such messages immediately."},
+          {text:"Hi Sameer Sir 🙏 I'm Rahul from PrintPro. Your number was shared by Vijay from Karol Bagh – he said you might need quality printing for clothing labels. We've helped 30+ clothing businesses in Pune. Open to a quick 2-min chat? 😊", correct:true, feedback:""},
+          {text:"Hi Sameer. I have good offers. Interested?", correct:false, feedback:"Too vague, no context, no reference, no value. One of the lowest-converting opening messages possible."},
+          {text:"Namaste Sameer Ji! Aaj bahut acha offer hai hamare paas, sirf aaj ke liye!", correct:false, feedback:"Fake urgency on first contact destroys credibility. The customer doesn't know you yet. Build rapport before creating urgency."}
+        ]
+      }
+    ]
+  }
+];
+
+// ============================================================
+// STATE
+// ============================================================
+var APP = {
+  userName: '', bizType: 'general', product: '',
+  xp: 0, completedTopics: [],
+  currentTopicId: null, currentScenarioIdx: 0
+};
+
+function save() {
+  try { localStorage.setItem('sg2', JSON.stringify(APP)); } catch(e) {}
+}
+function load() {
+  try {
+    var s = localStorage.getItem('sg2');
+    if (s) {
+      var d = JSON.parse(s);
+      APP.userName = d.userName || '';
+      APP.bizType = d.bizType || 'general';
+      APP.product = d.product || '';
+      APP.xp = d.xp || 0;
+      APP.completedTopics = Array.isArray(d.completedTopics) ? d.completedTopics : [];
+      APP.currentTopicId = d.currentTopicId || null;
+      return !!(APP.userName);
+    }
+  } catch(e) {}
+  return false;
+}
+function getTopic(id) {
+  for (var i = 0; i < TOPICS.length; i++) { if (TOPICS[i].id === id) return TOPICS[i]; }
+  return null;
+}
+
+// ============================================================
+// SCREEN SWITCHING
+// ============================================================
+function show(screenId) {
+  var screens = ['onboard','home','learn','practice','arena'];
+  for (var i = 0; i < screens.length; i++) {
+    var el = document.getElementById('screen-' + screens[i]);
+    if (el) el.style.display = 'none';
+  }
+  var target = document.getElementById('screen-' + screenId);
+  if (target) target.style.display = 'flex';
+}
+
+// ============================================================
+// ONBOARDING
+// ============================================================
+document.getElementById('btn-start').addEventListener('click', function() {
+  var name = document.getElementById('inp-name').value.trim();
+  var biz  = document.getElementById('inp-biz').value;
+  var prod = document.getElementById('inp-product').value.trim();
+  if (!name) { alert('Please enter your name.'); return; }
+  if (!biz)  { alert('Please select your business type.'); return; }
+  APP.userName = name;
+  APP.bizType  = biz;
+  APP.product  = prod || (PERSONAS[biz] ? PERSONAS[biz].product : 'your product');
+  APP.xp = 0;
+  APP.completedTopics = [];
+  save();
+  renderHome();
+  show('home');
+});
+
+// ============================================================
+// HOME
+// ============================================================
+function renderHome() {
+  var h = new Date().getHours();
+  var greet = h < 12 ? 'Good morning,' : h < 17 ? 'Good afternoon,' : 'Good evening,';
+  document.getElementById('greeting-text').textContent = greet;
+  document.getElementById('user-display').textContent = APP.userName;
+  document.getElementById('xp-count').textContent = APP.xp;
+
+  var done = APP.completedTopics.length;
+  var pct = Math.round(done / TOPICS.length * 100);
+  document.getElementById('prog-pct').textContent = pct + '%';
+  document.getElementById('prog-fill').style.width = pct + '%';
+
+  // Streak dots
+  var sb = document.getElementById('streak-bar');
+  sb.innerHTML = '';
+  for (var i = 0; i < 7; i++) {
+    var d = document.createElement('div');
+    d.className = 'streak-dot' + (i < done % 8 ? ' on' : '');
+    sb.appendChild(d);
+  }
+
+  // Topics
+  var tg = document.getElementById('topics-grid');
+  tg.innerHTML = '';
+  for (var i = 0; i < TOPICS.length; i++) {
+    (function(topic, idx) {
+      var isDone   = APP.completedTopics.indexOf(topic.id) !== -1;
+      var isLocked = idx > 0 && APP.completedTopics.indexOf(TOPICS[idx-1].id) === -1;
+      var div = document.createElement('div');
+      div.className = 'topic-card ' + (isDone ? 'completed' : isLocked ? 'locked' : 'active-topic');
+      div.innerHTML =
+        '<div class="topic-icon">' + topic.icon + '</div>' +
+        '<div class="topic-info"><div class="topic-name">' + topic.name + '</div><div class="topic-sub">' + topic.sub + '</div></div>' +
+        '<div class="topic-badge ' + (isDone ? 'badge-done' : isLocked ? 'badge-lock' : 'badge-go') + '">' +
+        (isDone ? '✓ Done' : isLocked ? '🔒' : '▶ Go') + '</div>';
+      if (!isLocked) {
+        div.onclick = function() { openLearn(topic.id); };
+      }
+      tg.appendChild(div);
+    })(TOPICS[i], i);
+  }
+
+  // Levels
+  var lg = document.getElementById('level-grid');
+  lg.innerHTML = '';
+  for (var i = 1; i <= 5; i++) {
+    (function(lv) {
+      var unlocked = APP.completedTopics.length >= (lv - 1) * 2;
+      var div = document.createElement('div');
+      div.className = 'level-btn ' + (unlocked ? 'active-lv' : 'locked-lv');
+      div.innerHTML = '<div class="lv-num">' + lv + '</div><div>Level</div>';
+      if (unlocked) div.onclick = function() { openArena(lv); };
+      lg.appendChild(div);
+    })(i);
+  }
+}
+
+// ============================================================
+// LEARN
+// ============================================================
+function openLearn(topicId) {
+  APP.currentTopicId = topicId;
+  APP.currentScenarioIdx = 0;
+  var topic = getTopic(topicId);
+  var persona = PERSONAS[APP.bizType] || PERSONAS.general;
+
+  document.getElementById('learn-title').textContent = topic.icon + ' ' + topic.name;
+
+  var html = '<div class="learn-icon">' + topic.icon + '</div>' +
+    '<h2 class="learn-heading">' + topic.name + '</h2>' +
+    '<p class="learn-intro">' + topic.intro + '</p>';
+
+  for (var i = 0; i < topic.tips.length; i++) {
+    html += '<div class="tip-card"><div class="tip-label">💡 ' + topic.tips[i].label + '</div><p>' + topic.tips[i].text + '</p></div>';
+  }
+
+  html += '<div class="author-quote"><p>' + topic.quote.text + '</p><div class="author-name">— ' + topic.quote.author + '</div></div>';
+  html += '<div class="tip-card" style="border-color:var(--accent2)"><div class="tip-label" style="color:var(--accent2)">⚙️ Your Business Context</div><p>You serve <strong>' + persona.customer + 's</strong> with <strong>' + (APP.product || persona.product) + '</strong>. All scenarios are customized to your business!</p></div>';
+  html += '<button class="practice-cta" id="start-practice-btn">⚡ Start Practice Scenarios</button>';
+  html += '<div style="height:2rem"></div>';
+
+  document.getElementById('learn-body').innerHTML = html;
+  document.getElementById('start-practice-btn').onclick = function() { openPractice(); };
+  show('learn');
+}
+
+document.getElementById('back-from-learn').onclick = function() {
+  renderHome(); show('home');
+};
+
+// ============================================================
+// PRACTICE
+// ============================================================
+function openPractice() {
+  var topic = getTopic(APP.currentTopicId);
+  document.getElementById('practice-title').textContent = '⚡ ' + topic.name;
+  renderScenario();
+  show('practice');
+}
+
+document.getElementById('back-from-practice').onclick = function() {
+  openLearn(APP.currentTopicId);
+};
+
+function renderScenario() {
+  var topic = getTopic(APP.currentTopicId);
+  var scenarios = topic.scenarios;
+  var idx = APP.currentScenarioIdx;
+
+  if (idx >= scenarios.length) {
+    showCompletion();
+    return;
+  }
+
+  var sc = scenarios[idx];
+  var letters = ['A','B','C','D'];
+  var pb = document.getElementById('practice-body');
+
+  var html = '<div style="font-size:.75rem;color:var(--muted);margin-bottom:.8rem">Scenario ' + (idx+1) + ' of ' + scenarios.length + '</div>' +
+    '<div class="scenario-box"><div class="scenario-label">📋 SCENARIO</div><div class="scenario-text">' + sc.text + '</div></div>' +
+    '<div class="options-list" id="opts">';
+
+  for (var i = 0; i < sc.options.length; i++) {
+    html += '<button class="option-btn" id="opt' + i + '" data-idx="' + i + '">' +
+      '<div class="opt-letter">' + letters[i] + '</div><div>' + sc.options[i].text + '</div></button>';
+  }
+
+  html += '</div><div id="feedback-area"></div><div style="height:2rem"></div>';
+  pb.innerHTML = html;
+  pb.scrollTop = 0;
+
+  // Attach click handlers
+  for (var i = 0; i < sc.options.length; i++) {
+    (function(optIdx) {
+      document.getElementById('opt' + optIdx).onclick = function() {
+        selectOption(optIdx);
+      };
+    })(i);
+  }
+}
+
+function selectOption(optIdx) {
+  var topic = getTopic(APP.currentTopicId);
+  var sc = topic.scenarios[APP.currentScenarioIdx];
+  var opt = sc.options[optIdx];
+
+  // Disable all buttons
+  var allBtns = document.querySelectorAll('.option-btn');
+  for (var i = 0; i < allBtns.length; i++) {
+    allBtns[i].onclick = null;
+    allBtns[i].style.cursor = 'default';
+  }
+
+  var btn = document.getElementById('opt' + optIdx);
+  var feedbackArea = document.getElementById('feedback-area');
+
+  if (opt.correct) {
+    btn.classList.add('correct');
+    feedbackArea.innerHTML =
+      '<div class="feedback-box fb-correct">' +
+      '<div class="fb-title">✅ Excellent! Correct Answer!</div>' +
+      '<div class="fb-text">Perfect! You applied the right technique. Well done! +50 XP</div></div>' +
+      '<button class="action-btn btn-next" id="next-btn">Next Scenario →</button>';
+    document.getElementById('next-btn').onclick = function() {
+      APP.xp += 50;
+      APP.currentScenarioIdx++;
+      save();
+      renderScenario();
+    };
+    APP.xp += 50;
+    document.getElementById('xp-count').textContent = APP.xp;
+    save();
+  } else {
+    btn.classList.add('wrong');
+    feedbackArea.innerHTML =
+      '<div class="feedback-box fb-wrong">' +
+      '<div class="fb-title">❌ Not Quite Right</div>' +
+      '<div class="fb-text">' + opt.feedback + '</div></div>' +
+      '<button class="action-btn btn-retry" id="retry-btn">🔄 Try Again</button>';
+    document.getElementById('retry-btn').onclick = function() {
+      renderScenario();
+    };
+  }
+
+  feedbackArea.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function showCompletion() {
+  var topic = getTopic(APP.currentTopicId);
+  if (APP.completedTopics.indexOf(topic.id) === -1) {
+    APP.completedTopics.push(topic.id);
+    APP.xp += 200;
+    save();
+  }
+  document.getElementById('practice-body').innerHTML =
+    '<div style="text-align:center;padding:2rem 1rem">' +
+    '<div style="font-size:4rem;margin-bottom:1rem">🏆</div>' +
+    '<h2 style="font-family:var(--font);font-size:1.5rem;color:var(--success);margin-bottom:.5rem">Topic Mastered!</h2>' +
+    '<p style="color:var(--muted);font-size:.9rem;line-height:1.6;margin-bottom:1.5rem">You completed <strong>' + topic.name + '</strong>!<br>+200 XP earned!</p>' +
+    '<button class="practice-cta" id="home-btn-done">🏠 Back to Dashboard</button></div>';
+  document.getElementById('home-btn-done').onclick = function() {
+    renderHome(); show('home');
+  };
+}
+
+// ============================================================
+// ARENA
+// ============================================================
+var arenaState = { level:1, move:0, score:0, customerName:'Ajay' };
+
+var ARENA_SCRIPT = [
+  { ai:"Hi! I saw your message. Tell me more about what you offer.",
+    opts:[
+      {text:"Hi Sir! We help businesses like yours save time and money. Would you have 2 minutes to explore?", score:10},
+      {text:"I sell many things. Are you interested?", score:-5},
+      {text:"Please check our website.", score:0}
+    ]
+  },
+  { ai:"Okay, but what specifically do you do for businesses like mine?",
+    opts:[
+      {text:"Great question! We specialize in exactly what businesses in your industry need. May I ask – what challenges are you facing currently?", score:10},
+      {text:"We are the best company in India.", score:-5},
+      {text:"We have been in business since 2010 with many clients.", score:2}
+    ]
+  },
+  { ai:"Why should I choose you over others?",
+    opts:[
+      {text:"3 reasons: 50+ satisfied clients, quality guarantee, and free after-sales support. But more importantly – what specific result matters most to YOU?", score:10},
+      {text:"Because we are cheapest!", score:-5},
+      {text:"I don't know, you can decide.", score:-10}
+    ]
+  },
+  { ai:"I've had bad experiences with suppliers before. What makes you different?",
+    opts:[
+      {text:"I completely understand and I respect that. Could you tell me what went wrong before? I want to make sure we genuinely have the right solution for you.", score:10},
+      {text:"Our company never makes mistakes, 100% guarantee!", score:-5},
+      {text:"That was their fault not ours.", score:0}
+    ]
+  },
+  { ai:"What would it cost me roughly?",
+    opts:[
+      {text:"Based on what you've shared, I'd estimate a range. But to give you an exact quote that fits your needs, may I ask about your typical monthly volume?", score:10},
+      {text:"Very cheap! Whatever you want to pay!", score:-5},
+      {text:"I'll send you a price list.", score:2}
+    ]
+  },
+  { ai:"Let me think about it...",
+    opts:[
+      {text:"Of course Sir, take your time! Just so you have all the facts – this pricing is valid till end of month. Shall I block a tentative slot for you while you decide?", score:15},
+      {text:"Please decide fast! Last chance today only!", score:-10},
+      {text:"Okay, call me when you are ready.", score:-5}
+    ]
+  }
+];
+
+function openArena(level) {
+  arenaState.level = level;
+  arenaState.move = 0;
+  arenaState.score = 0;
+  arenaState.customerName = ['Ajay','Neha','Vikram','Priya','Rajesh Mehta'][level-1] || 'Customer';
+
+  document.getElementById('arena-title').textContent = 'Level ' + level + ' – AI Customer';
+  document.getElementById('arena-moves').textContent = 'Move 0/' + ARENA_SCRIPT.length;
+  document.getElementById('arena-chat').innerHTML = '';
+  document.getElementById('arena-options').innerHTML = '';
+
+  show('arena');
+  addMsg('ai', '👋 Hi! I am ' + arenaState.customerName + '. I got your message. Let\'s talk. ' +
+    (level > 1 ? '(Note: I will be a tougher customer at this level!)' : ''));
+  setTimeout(nextArenaMove, 800);
+}
+
+document.getElementById('back-from-arena').onclick = function() {
+  renderHome(); show('home');
+};
+
+function addMsg(type, text) {
+  var chat = document.getElementById('arena-chat');
+  var div = document.createElement('div');
+  div.className = 'msg ' + type;
+  div.innerHTML = '<div class="msg-label">' + (type === 'ai' ? '🤖 ' + arenaState.customerName : '👤 You') + '</div>' +
+    '<div class="msg-bubble">' + text + '</div>';
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function nextArenaMove() {
+  var move = arenaState.move;
+  if (move >= ARENA_SCRIPT.length) { checkArenaEnd(); return; }
+
+  var step = ARENA_SCRIPT[move];
+  addMsg('ai', step.ai);
+
+  var optContainer = document.getElementById('arena-options');
+  optContainer.innerHTML = '';
+
+  setTimeout(function() {
+    for (var i = 0; i < step.opts.length; i++) {
+      (function(opt) {
+        var btn = document.createElement('button');
+        btn.className = 'arena-opt';
+        btn.textContent = opt.text;
+        btn.onclick = function() {
+          optContainer.innerHTML = '';
+          addMsg('user', opt.text);
+          arenaState.score += opt.score;
+          arenaState.move++;
+          document.getElementById('arena-moves').textContent = 'Move ' + arenaState.move + '/' + ARENA_SCRIPT.length;
+
+          var reaction = opt.score >= 10 ? 'Hmm, that makes sense...' : opt.score > 0 ? 'Okay...' : 'That doesn\'t quite answer my concern.';
+          setTimeout(function() {
+            addMsg('ai', reaction);
+            setTimeout(nextArenaMove, 700);
+          }, 400);
+        };
+        optContainer.appendChild(btn);
+      })(step.opts[i]);
+    }
+  }, 400);
+}
+
+function checkArenaEnd() {
+  document.getElementById('arena-options').innerHTML = '';
+  var won = arenaState.score >= 40;
+  if (won) {
+    addMsg('ai', '🎉 You know what, I am convinced! Let\'s go ahead. When can you start?');
+    setTimeout(function() {
+      var chat = document.getElementById('arena-chat');
+      var div = document.createElement('div');
+      div.className = 'win-banner';
+      div.innerHTML = '<div class="win-icon">🏆</div>' +
+        '<h2 style="color:var(--success);font-family:var(--font);font-size:1.3rem;margin-bottom:.4rem">You Won the Sale!</h2>' +
+        '<p style="color:var(--muted);font-size:.85rem">Score: ' + arenaState.score + ' points<br>+500 XP earned!</p>' +
+        '<button class="practice-cta" style="margin-top:1rem" id="arena-home-btn">Back to Dashboard</button>';
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+      APP.xp += 500;
+      document.getElementById('xp-count').textContent = APP.xp;
+      save();
+      document.getElementById('arena-home-btn').onclick = function() { renderHome(); show('home'); };
+    }, 1000);
+  } else {
+    addMsg('ai', 'I am still not fully convinced. Score: ' + arenaState.score + '/40 needed to close.');
+    setTimeout(function() {
+      var chat = document.getElementById('arena-chat');
+      var btn = document.createElement('button');
+      btn.className = 'practice-cta';
+      btn.style.margin = '1rem';
+      btn.style.width = 'calc(100% - 2rem)';
+      btn.textContent = '🔄 Try Again';
+      btn.onclick = function() { openArena(arenaState.level); };
+      chat.appendChild(btn);
+      chat.scrollTop = chat.scrollHeight;
+    }, 600);
+  }
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.onload = function() {
+  if (load() && APP.userName) {
+    renderHome();
+    show('home');
+  } else {
+    show('onboard');
+  }
+};
+</script>
+</body>
+</html>
