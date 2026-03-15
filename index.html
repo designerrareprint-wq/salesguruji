@@ -634,12 +634,24 @@ let state = {
   arenaHistory: [], arenaMove: 0, arenaWon: false
 };
 
-function saveState() { try { localStorage.setItem('sgState', JSON.stringify(state)); } catch(e){} }
+function saveState() {
+  try {
+    const toSave = { ...state, currentTopic: state.currentTopic ? state.currentTopic.id : null };
+    localStorage.setItem('sgState', JSON.stringify(toSave));
+  } catch(e) {}
+}
 function loadState() {
   try {
     const s = localStorage.getItem('sgState');
-    if (s) { state = { ...state, ...JSON.parse(s) }; return true; }
-  } catch(e){}
+    if (s) {
+      const parsed = JSON.parse(s);
+      const topicId = parsed.currentTopic;
+      state = { ...state, ...parsed };
+      state.currentTopic = topicId ? (TOPICS.find(t => t.id === topicId) || null) : null;
+      if (!Array.isArray(state.completedTopics)) state.completedTopics = [];
+      return !!(state.userName);
+    }
+  } catch(e) {}
   return false;
 }
 
@@ -647,77 +659,102 @@ function loadState() {
 //  ONBOARDING
 // ============================================================
 function startApp() {
-  const name = document.getElementById('inp-name').value.trim();
-  const biz = document.getElementById('inp-biz').value;
-  const prod = document.getElementById('inp-product').value.trim();
-  if (!name) { alert('Please enter your name to continue.'); return; }
-  if (!biz) { alert('Please select your business type.'); return; }
-  state.userName = name;
-  state.bizType = biz;
-  state.product = prod || BUSINESS_PERSONAS[biz].product;
-  saveState();
-  showHome();
+  try {
+    const name = document.getElementById('inp-name').value.trim();
+    const biz = document.getElementById('inp-biz').value;
+    const prod = document.getElementById('inp-product').value.trim();
+    if (!name) { alert('Please enter your name to continue.'); return; }
+    if (!biz) { alert('Please select your business type.'); return; }
+    state.userName = name;
+    state.bizType = biz;
+    state.product = prod || (BUSINESS_PERSONAS[biz] ? BUSINESS_PERSONAS[biz].product : 'your product');
+    state.completedTopics = state.completedTopics || [];
+    state.xp = state.xp || 0;
+    saveState();
+    showHome();
+  } catch(err) {
+    alert('Error: ' + err.message);
+  }
 }
 
 // ============================================================
 //  HOME
 // ============================================================
 function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('screen-' + id).classList.add('active');
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+    s.style.display = 'none';
+  });
+  const target = document.getElementById('screen-' + id);
+  if (target) {
+    target.classList.add('active');
+    target.style.display = 'flex';
+  }
 }
 
 function showHome() {
   showScreen('home');
   const h = new Date().getHours();
   const greet = h < 12 ? 'Good morning,' : h < 17 ? 'Good afternoon,' : 'Good evening,';
-  document.getElementById('greeting-text').textContent = greet;
-  document.getElementById('user-display').textContent = state.userName || 'Champion';
-  document.getElementById('xp-count').textContent = state.xp;
+  const greetEl = document.getElementById('greeting-text');
+  const userEl = document.getElementById('user-display');
+  const xpEl = document.getElementById('xp-count');
+  const pctEl = document.getElementById('prog-pct');
+  const fillEl = document.getElementById('prog-fill');
+  if (greetEl) greetEl.textContent = greet;
+  if (userEl) userEl.textContent = state.userName || 'Champion';
+  if (xpEl) xpEl.textContent = state.xp || 0;
 
-  const pct = Math.round((state.completedTopics.length / TOPICS.length) * 100);
-  document.getElementById('prog-pct').textContent = pct + '%';
-  document.getElementById('prog-fill').style.width = pct + '%';
+  const completed = Array.isArray(state.completedTopics) ? state.completedTopics : [];
+  const pct = Math.round((completed.length / TOPICS.length) * 100);
+  if (pctEl) pctEl.textContent = pct + '%';
+  if (fillEl) fillEl.style.width = pct + '%';
 
   // Streak dots
   const sb = document.getElementById('streak-bar');
-  sb.innerHTML = '';
-  for (let i = 0; i < 7; i++) {
-    const d = document.createElement('div');
-    d.className = 'streak-dot' + (i < (state.completedTopics.length % 8) ? ' on' : '');
-    sb.appendChild(d);
+  if (sb) {
+    sb.innerHTML = '';
+    for (let i = 0; i < 7; i++) {
+      const d = document.createElement('div');
+      d.className = 'streak-dot' + (i < (completed.length % 8) ? ' on' : '');
+      sb.appendChild(d);
+    }
   }
 
   // Topics grid
   const tg = document.getElementById('topics-grid');
-  tg.innerHTML = '';
-  TOPICS.forEach((t, i) => {
-    const done = state.completedTopics.includes(t.id);
-    const locked = i > 0 && !state.completedTopics.includes(TOPICS[i-1].id);
-    const div = document.createElement('div');
-    div.className = 'topic-card ' + (done ? 'completed' : locked ? 'locked' : 'active-topic');
-    div.onclick = () => openTopic(t);
-    div.innerHTML = `
-      <div class="topic-icon">${t.icon}</div>
-      <div class="topic-info">
-        <div class="topic-name">${t.name}</div>
-        <div class="topic-sub">${t.sub}</div>
-      </div>
-      <div class="topic-badge ${done ? 'badge-done' : locked ? 'badge-lock' : 'badge-go'}">${done ? '✓ Done' : locked ? '🔒 Locked' : '▶ Go'}</div>
-    `;
-    tg.appendChild(div);
-  });
+  if (tg) {
+    tg.innerHTML = '';
+    TOPICS.forEach((t, i) => {
+      const done = completed.includes(t.id);
+      const locked = i > 0 && !completed.includes(TOPICS[i-1].id);
+      const div = document.createElement('div');
+      div.className = 'topic-card ' + (done ? 'completed' : locked ? 'locked' : 'active-topic');
+      div.onclick = () => openTopic(t);
+      div.innerHTML = `
+        <div class="topic-icon">${t.icon}</div>
+        <div class="topic-info">
+          <div class="topic-name">${t.name}</div>
+          <div class="topic-sub">${t.sub}</div>
+        </div>
+        <div class="topic-badge ${done ? 'badge-done' : locked ? 'badge-lock' : 'badge-go'}">${done ? '✓ Done' : locked ? '🔒 Locked' : '▶ Go'}</div>
+      `;
+      tg.appendChild(div);
+    });
+  }
 
   // Level grid
   const lg = document.getElementById('level-grid');
-  lg.innerHTML = '';
-  for (let i = 1; i <= 5; i++) {
-    const unlocked = state.completedTopics.length >= (i - 1) * 2;
-    const div = document.createElement('div');
-    div.className = 'level-btn ' + (unlocked ? 'active-lv' : 'locked-lv');
-    div.innerHTML = `<div class="lv-num">${i}</div><div>Level</div>`;
-    div.onclick = () => openArena(i);
-    lg.appendChild(div);
+  if (lg) {
+    lg.innerHTML = '';
+    for (let i = 1; i <= 5; i++) {
+      const unlocked = completed.length >= (i - 1) * 2;
+      const div = document.createElement('div');
+      div.className = 'level-btn ' + (unlocked ? 'active-lv' : 'locked-lv');
+      div.innerHTML = `<div class="lv-num">${i}</div><div>Level</div>`;
+      div.onclick = () => openArena(i);
+      lg.appendChild(div);
+    }
   }
 }
 
@@ -1178,8 +1215,15 @@ function triggerConfetti() {
 //  INIT
 // ============================================================
 window.onload = () => {
-  if (loadState() && state.userName) {
-    showHome();
+  try {
+    const hasData = loadState();
+    if (hasData && state.userName) {
+      showHome();
+    } else {
+      showScreen('onboard');
+    }
+  } catch(e) {
+    showScreen('onboard');
   }
 };
 </script>
